@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data page</title>
+    <link rel="stylesheet" href="./style.css">
+    <style>
+        .highlight {
+            background-color: yellow;
+            font-weight: bold;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+
+        th, td {
+            border: 1px solid #dddddd;
+            text-align: left;
+            padding: 8px;
+        }
+
+        tr:hover {
+            background-color: #f5f5f5;
+            cursor: pointer;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div id="overlay">
+        <img src="./img/preloader.gif" alt="Preloader icon" />
+    </div>
+
+    <main>
+
+        <div id="table-section">
+
+            <form action="/">
+                <img src='./img/search-icon.svg' alt="Search Icon" />
+                <input type="text" placeholder="Enter something" name="search-box" id="search-box" value="" />
+            </form>
+
+            <div id="table-wrapper">
+
+                <div id="table-headers">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th class="column1">Id</th>
+                                <th class="column2">FirstName</th>
+                                <th class="column3">LastName</th>
+                                <th class="column4">Email</th>
+                                <th class="column5">Phone</th>
+                            </tr>
+                        </thead>
+                    </table>
+                </div>
+
+                <div id="table-data">
+                    <table>
+                        <tbody id="table-data-body">
+                            <!-- Table data will be dynamically inserted here -->
+                        </tbody>
+                    </table>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Details box -->
+
+        <div id="info-wrapper">
+            <h1>Details</h1>
+            <p>Click on a table item to get detailed information</p>
+            <div id="info-content">
+                <!-- Detailed information will be displayed here -->
+            </div>
+        </div>
+
+    </main>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            let searchData = [];
+
+            // Function to fetch data from the API
+            async function fetchData() {
+                try {
+                    const response = await fetch('http://www.filltext.com/?rows=32&id=%7Bnumber%7C1000%7D&firstName=%7BfirstName%7D&lastName=%7BlastName%7D&email=%7Bemail%7D&phone=%7Bphone%7C(xxx)xxx-xx-xx%7D&address=%7BaddressObject%7D&description=%7Blorem%7C32%7D');
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+
+                    const data = await response.json();
+                    return data;
+                } catch (error) {
+                    console.error('Error fetching data:', error);
+                    throw error;
+                }
+            }
+
+            // Function to render data in the table
+            function renderData(data) {
+                searchData = data;
+                const tableDataBody = document.getElementById('table-data-body');
+
+                data.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.classList.add('data-row');
+
+                    row.innerHTML = `
+                        <td class="column1">${item.id}</td>
+                        <td class="column2">${item.firstName}</td>
+                        <td class="column3">${item.lastName}</td>
+                        <td class="column4">${item.email}</td>
+                        <td class="column5">${item.phone}</td>
+                    `;
+
+                    // Add a click event listener to each row
+                    row.addEventListener('click', () => displayDetails(item));
+
+                    tableDataBody.appendChild(row);
+                });
+            }
+
+            // Function to display details on the right side
+            function displayDetails(item) {
+                const infoContent = document.getElementById('info-content');
+                infoContent.innerHTML = `
+                    <div><b>User selected:</b> ${item.firstName} ${item.lastName}</div>
+                    <div><b>Email:</b> ${item.email}</div>
+                    <div><b>Phone:</b> ${item.phone}</div>
+                    <div><b>Description: </b>${item.description}</div>
+                    <div><b>Address:</b> ${item.address.streetAddress}, ${item.address.city}, ${item.address.state} ${item.address.zip}</div>
+                `;
+
+                // Remove the highlight class from all rows
+                const rows = document.querySelectorAll(".data-row");
+                rows.forEach(function (row) {
+                    row.classList.remove("highlight");
+                });
+
+                // Add the highlight class to the clicked row
+                event.currentTarget.classList.add("highlight");
+            }
+
+            // Function to handle live search
+            function handleLiveSearch() {
+                const searchBox = document.getElementById('search-box');
+                searchBox.addEventListener('input', () => {
+                    const searchTerm = searchBox.value.trim().toLowerCase();
+                    const filteredData = searchData.filter(item => item.firstName.toLowerCase().includes(searchTerm));
+                    renderFilteredData(filteredData, searchTerm);
+                });
+            }
+
+            // Function to render filtered data in the table with highlighted search term
+            function renderFilteredData(filteredData, searchTerm) {
+                const tableDataBody = document.getElementById('table-data-body');
+                tableDataBody.innerHTML = '';
+
+                filteredData.forEach(item => {
+                    const row = document.createElement('tr');
+                    row.classList.add('data-row');
+
+                    row.innerHTML = `
+                        <td class="column1">${item.id}</td>
+                        <td class="column2">${highlightSearchTerm(item.firstName, searchTerm)}</td>
+                        <td class="column3">${highlightSearchTerm(item.lastName, searchTerm)}</td>
+                        <td class="column4">${highlightSearchTerm(item.email, searchTerm)}</td>
+                        <td class="column5">${highlightSearchTerm(item.phone, searchTerm)}</td>
+                    `;
+
+                    // Add a click event listener to each row
+                    row.addEventListener('click', () => displayDetails(item));
+
+                    tableDataBody.appendChild(row);
+                });
+            }
+
+            // Function to highlight the search term in a given text
+            function highlightSearchTerm(text, searchTerm) {
+                if (!searchTerm) {
+                    return text;
+                }
+
+                const regex = new RegExp(searchTerm, 'gi');
+                return text.replace(regex, match => `<span class="highlight">${match}</span>`);
+            }
+
+            fetchData()
+                .then(data => {
+                    renderData(data);
+                    handleLiveSearch();
+                })
+                .catch(error => {
+                    // Handle errors here
+                    console.error('Error during initialization:', error);
+                });
+        });
+    </script>
+</body>
+
+</html>
